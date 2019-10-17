@@ -18,7 +18,7 @@
 image:
   registry: docker.io
   repository: bitnami/influxdb
-  tag: 1.7.8-r5
+  tag: 1.7.8-debian-9-r17
   ## Specify a imagePullPolicy. Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
   ## ref: http://kubernetes.io/docs/user-guide/images/#pre-pulling-images
   ##
@@ -42,6 +42,10 @@ image:
 ##
 # fullnameOverride:
 
+## Kubernetes Cluster Domain
+##
+clusterDomain: cluster.local
+
 ## InfluxDB architecture. Allowed values: standalone or high-availability
 ##
 architecture: high-availability
@@ -59,25 +63,25 @@ authEnabled: true
 ## InfluxDB admin credentials
 ##
 adminUser:
-  user: admin
+  name: admin
   pwd:
   usePasswordFile: false
 ## InfluxDB credentials for user with 'admin' privileges on the db specified at 'database' parameter
 ##
 user:
-  user:
+  name:
   pwd:
   usePasswordFile: false
 ## InfluxDB credentials for user with 'read' privileges on the db specified at 'database' parameter
 ##
 readUser:
-  user:
+  name:
   pwd:
   usePasswordFile: false
 ## InfluxDB credentials for user with 'write' privileges on the db specified at 'database' parameter
 ##
 writeUser:
-  user:
+  name:
   pwd:
   usePasswordFile: false
 
@@ -118,6 +122,11 @@ influxdb:
   ## NOTE: This will override initdbScripts
   ##
   # initdbScriptsCM
+
+  ## Secret with scripts to be run at first boot (in case it contains sensitive information)
+  ## NOTE: This can work along initdbScripts or initdbScriptsCM
+  ##
+  # initdbScriptsSecret:
 
   ## An array to add extra environment variables
   ## For example:
@@ -167,15 +176,15 @@ influxdb:
   ## InfluxDB pods' resource requests and limits
   ## ref: http://kubernetes.io/docs/user-guide/compute-resources/
   ##
-  resources: {}
+  resources:
     # We usually recommend not to specify default resources and to leave this as a conscious
     # choice for the user. This also increases chances charts run on environments with little
     # resources, such as Minikube. If you do want to specify resources, uncomment the following
     # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-    # limits:
+    limits: {}
     #   cpu: 100m
     #   memory: 128Mi
-    # requests:
+    requests: {}
     #   cpu: 100m
     #   memory: 128Mi
 
@@ -209,6 +218,12 @@ influxdb:
     ## InfluxDB RPC Port
     ##
     rcpPort: 8088
+    ## Specify the nodePort(s) value for the LoadBalancer and NodePort service types.
+    ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#type-nodeport
+    ##
+    nodePorts:
+      http: ""
+      rcp: ""
     ## Set the LoadBalancer service type to internal only.
     ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#internal-load-balancer
     ##
@@ -235,7 +250,7 @@ relay:
   image:
     registry: docker.io
     repository: bitnami/influxdb-relay
-    tag: 0.20161114.0-r0
+    tag: 0.20161114.0-scratch-r0
     ## Specify a imagePullPolicy. Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
     ## ref: http://kubernetes.io/docs/user-guide/images/#pre-pulling-images
     ##
@@ -264,8 +279,9 @@ relay:
         {{- $influxdbFullname := include "influxdb.fullname" . }}
         {{- $influxdbHeadlessServiceName := printf "%s-headless" (include "influxdb.fullname" .) }}
         {{- $releaseName := .Release.Namespace }}
+        {{- $clusterDomain:= .Values.clusterDomain }}
         {{- range $e, $i := until $influxdbReplicaCount }}
-        { name="{{ $influxdbFullname }}-{{ $i }}", location="http://{{ $influxdbFullname }}-{{ $i }}.{{ $influxdbHeadlessServiceName }}.{{ $releaseName }}.svc.cluster.local:8086/write", timeout="10s"},
+        { name="{{ $influxdbFullname }}-{{ $i }}", location="http://{{ $influxdbFullname }}-{{ $i }}.{{ $influxdbHeadlessServiceName }}.{{ $releaseName }}.svc.{{ $clusterDomain }}:8086/write", timeout="10s"},
         {{- end }}
     ]
 
@@ -314,15 +330,15 @@ relay:
   ## InfluxDB Relay pods' resource requests and limits
   ## ref: http://kubernetes.io/docs/user-guide/compute-resources/
   ##
-  resources: {}
+  resources:
     # We usually recommend not to specify default resources and to leave this as a conscious
     # choice for the user. This also increases chances charts run on environments with little
     # resources, such as Minikube. If you do want to specify resources, uncomment the following
     # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-    # limits:
+    limits: {}
     #   cpu: 100m
     #   memory: 128Mi
-    # requests:
+    requests: {}
     #   cpu: 100m
     #   memory: 128Mi
 
@@ -353,6 +369,10 @@ relay:
     ## InfluxDB Relay HTTP port
     ##
     port: 9096
+    ## Specify the nodePort value for the LoadBalancer and NodePort service types.
+    ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#type-nodeport
+    ##
+    nodePort: ""
     ## Set the LoadBalancer service type to internal only.
     ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#internal-load-balancer
     ##
@@ -391,8 +411,8 @@ ingress:
   ## The list of hostnames to be covered with this ingress record.
   ## Most likely this will be just one host, but in the event more hosts are needed, this is an array
   hosts:
-  - name: influxdb.local
-    path: /
+    - name: influxdb.local
+      path: /
 
   ## The tls configuration for the ingress
   ## see: https://kubernetes.io/docs/concepts/services-networking/ingress/#tls
@@ -414,6 +434,42 @@ ingress:
   # - name: influxdb.local-tls
   #   key:
   #   certificate:
+
+## Prometheus metrics
+## ref: https://docs.influxdata.com/influxdb/v1.7/administration/server_monitoring/#influxdb-metrics-http-endpoint
+##
+metrics:
+  enabled: true
+  service:
+    ## Service type
+    ##
+    type: ClusterIP
+    ## InfluxDB Prometheus port
+    ##
+    port: 9122
+    ## Specify the nodePort value for the LoadBalancer and NodePort service types.
+    ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#type-nodeport
+    ##
+    nodePort: ""
+    ## Set the LoadBalancer service type to internal only.
+    ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#internal-load-balancer
+    ##
+    # loadBalancerIP:
+    ## Load Balancer sources
+    ## https://kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/#restrict-access-for-loadbalancer-service
+    ##
+    # loadBalancerSourceRanges:
+    # - 10.10.10.0/24
+    ## Set the Cluster IP to use
+    ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#choosing-your-own-ip-address
+    ##
+    # clusterIP: None
+    ## Annotations for the Prometheus metrics service
+    ##
+    annotations:
+      prometheus.io/scrape: "true"
+      prometheus.io/port: "{{ .Values.influxdb.service.port }}"
+      prometheus.io/path: "/metrics"
 
 ## NetworkPolicy paramaters
 ##
@@ -463,7 +519,7 @@ volumePermissions:
   image:
     registry: docker.io
     repository: bitnami/minideb
-    tag: latest
+    tag: stretch
     ## Specify a imagePullPolicy. Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
     ## ref: http://kubernetes.io/docs/user-guide/images/#pre-pulling-images
     ##
