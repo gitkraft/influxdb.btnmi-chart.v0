@@ -1,11 +1,13 @@
-<!--- app-name: InfluxDB(TM) -->
+<!--- app-name: InfluxDB&trade; -->
 
-# InfluxDB&trade;
+# Bitnami Stack for InfluxDB(TM)
 
-[InfluxDB&trade;](https://www.influxdata.com/products/influxdb-overview/) is an open source time-series database designed to handle large write and read loads in real-time.
+InfluxDB(TM) is an open source time-series database. It is a core component of the TICK (Telegraf, InfluxDB(TM), Chronograf, Kapacitor) stack.
 
-Disclaimer: The respective trademarks mentioned in the offering are owned by the respective companies. We do not provide a commercial license for any of these products. This listing has an open-source license. InfluxDB&trade; and InfluxDB Relay&trade; are run and maintained by InfluxData, which is a completely separate project from Bitnami.
+[Overview of InfluxDB&trade;](https://www.influxdata.com/products/influxdb-overview)
 
+InfluxDB(TM) is a trademark owned by InfluxData, which is not affiliated with, and does not endorse, this site.
+                           
 ## TL;DR
 
 ```console
@@ -439,64 +441,64 @@ architecture="high-availability"
 The standalone architecture installs a deployment with one InfluxDB&trade; server (it cannot be scaled):
 
 ```
-               ┌──────────────────┐
-               │     Ingress      │
-               │    Controller    │
-               └────────┬─────────┘
+               ������������������������������������������������������������
+               ���     Ingress      ���
+               ���    Controller    ���
+               ������������������������������������������������������������
                         |
-                        │ /query
-                        │ /write
-                        ▼
-                ┌────────────────┐
-                │  InfluxDB(TM)  │
-                |      svc       │
-                └───────┬────────┘
-                        │
-                        ▼
-                 ┌──────────────┐
-                 │ InfluxDB(TM) │
-                 │    Server    │
-                 │     Pod      │
-                 └──────────────┘
+                        ��� /query
+                        ��� /write
+                        ���
+                ������������������������������������������������������
+                ���  InfluxDB(TM)  ���
+                |      svc       ���
+                ������������������������������������������������������
+                        ���
+                        ���
+                 ������������������������������������������������
+                 ��� InfluxDB(TM) ���
+                 ���    Server    ���
+                 ���     Pod      ���
+                 ������������������������������������������������
 ```
 
 The high availability install a statefulset with N InfluxDB&trade; servers and M InfluxDB Relay&trade; instances:
 
 ```
-                   ┌──────────────────┐
-                   │     Ingress      │
-                   │    Controller    │
-                   └───────┬─┬────────┘
-                           │ │
-                           │ │
-              ┌────────────┘ └─────────────┐
-              │                            │
-              │ /write              /query │
-              ▼                            ▼
-      ┌────────────────────┐  ┌────────────────────┐
-      │ InfluxDB Relay(TM) │  │    InfluxDB(TM)    │
-      │          svc       │  │         svc        │
-      └───────────┬─┬──────┘  └─────┬─────┬────────┘
-      ┌────────── │─|───────────────|─────│───────┐
-      |           │ |               |     │       ▼
-┌─────┴────────┐  │ |               |     │  ┌──────────────┐
-│   InfluxDB   │  │ |               |     │  │ InfluxDB(TM) │
-│  Relay(TM)   │◀─┘ |               |     └─▶│    Server    │
-│     Pod      │    │               │        │     Pod      │
-└─────┬────────┘    │               │        └──────────────┘
-      |             │               │           ▲
-      └─────────────│───────────────│───────┐   |
-                    │               │       |   |
-  ┌──────────────── │───────────────│───────────┘
-  |                 │               │       |
-  |                 │               │       ▼
-┌─┴─────────────┐   │               │   ┌──────────────┐
-│    InfluxDB   │   │               │   │ InfluxDB(TM) │
-│   Relay(TM)   │◀──┘               └──▶│  Server      │
-│      Pod      │                       │   Pod        │
-└─────┬─────────┘                       └──────────────┘
-      |                                   ▲
-      └───────────────────────────────────┘
+                   ������������������������������������������������������������
+                   ���     Ingress      ���
+                   ���    Controller    ���
+                   ������������������������������������������������������������
+                           ��� ���
+                           ��� ���
+              ������������������������������������������ ���������������������������������������������
+              ���                            ���
+              ��� /write              /query ���
+              ���                            ���
+      ������������������������������������������������������������������  ������������������������������������������������������������������
+      ��� InfluxDB Relay(TM) ���  ���    InfluxDB(TM)    ���
+      ���          svc       ���  ���         svc        ���
+      ������������������������������������������������������������������  ������������������������������������������������������������������
+      ��������������������������������� ������|���������������������������������������������|������������������������������������������
+      |           ��� |               |     ���       ���
+������������������������������������������������  ��� |               |     ���  ������������������������������������������������
+���   InfluxDB   ���  ��� |               |     ���  ��� InfluxDB(TM) ���
+���  Relay(TM)   ������������ |               |     ������������    Server    ���
+���     Pod      ���    ���               ���        ���     Pod      ���
+������������������������������������������������    ���               ���        ������������������������������������������������
+      |             ���               ���           ���
+      ���������������������������������������������������������������������������������������������������������������������   |
+                    ���               ���       |   |
+  ��������������������������������������������������� ���������������������������������������������������������������������������������������
+  |                 ���               ���       |
+  |                 ���               ���       ���
+���������������������������������������������������   ���               ���   ������������������������������������������������
+���    InfluxDB   ���   ���               ���   ��� InfluxDB(TM) ���
+���   Relay(TM)   ���������������               ���������������  Server      ���
+���      Pod      ���                       ���   Pod        ���
+���������������������������������������������������                       ������������������������������������������������
+      |                                   ���
+      ���������������������������������������������������������������������������������������������������������������
 ```
 
 When using the high-availability architecture, it is recommended to configure sticky sessions using `--set influxdb.service.sessionAffinity="ClientIP"` or configuring the IngressController accordingly.
@@ -505,7 +507,7 @@ When using the high-availability architecture, it is recommended to configure st
 
 - **Ingress**: The ingress controller must be installed in the Kubernetes cluster. Set `ingress.enabled=true` to expose InfluxDB&trade; through Ingress.
 - **ClusterIP**: Exposes the service on a cluster-internal IP. Choosing this value makes the service only reachable from within the cluster. Set `influxdb.service.type=ClusterIP` to choose this service type.
-- **NodePort**: Exposes the service on each Node's IP at a static port (the NodePort). You’ll be able to contact the NodePort service, from outside the cluster, by requesting `NodeIP:NodePort`. Set `influxdb.service.type=NodePort` to choose this service type.
+- **NodePort**: Exposes the service on each Node's IP at a static port (the NodePort). You'll be able to contact the NodePort service, from outside the cluster, by requesting `NodeIP:NodePort`. Set `influxdb.service.type=NodePort` to choose this service type.
 - **LoadBalancer**: Exposes the service externally using a cloud provider's load balancer. Set `influxdb.service.type=LoadBalancer` to choose this service type.
 
 ### Using custom configuration
@@ -561,7 +563,7 @@ There are K8s distribution, such as OpenShift, where you can dynamically define 
 
 ## Troubleshooting
 
-Find more information about how to deal with common errors related to Bitnami’s Helm charts in [this troubleshooting guide](https://docs.bitnami.com/general/how-to/troubleshoot-helm-chart-issues).
+Find more information about how to deal with common errors related to Bitnami's Helm charts in [this troubleshooting guide](https://docs.bitnami.com/general/how-to/troubleshoot-helm-chart-issues).
 
 ## Upgrade
 
